@@ -6,14 +6,12 @@ import { ModInfo, DefConflict, ServerData } from './types.js';
 export class ModLoader {
     private rimworldPath: string;
     private modBatchSize: number;
-    private extraModDirs: string[];
-    private steamWorkshopPath: string;
+    private modDirs: string[];
 
-    constructor(rimworldPath: string, modBatchSize: number = 10, extraModDirs: string[] = [], steamWorkshopPath: string = '') {
+    constructor(rimworldPath: string, modBatchSize: number = 10, modDirs: string[] = []) {
         this.rimworldPath = rimworldPath;
         this.modBatchSize = modBatchSize;
-        this.extraModDirs = extraModDirs;
-        this.steamWorkshopPath = steamWorkshopPath;
+        this.modDirs = modDirs;
     }
 
     async loadMods(data: ServerData): Promise<void> {
@@ -41,8 +39,12 @@ export class ModLoader {
             }
         }
 
-        console.error('Loading additional mods...');
-        await this.loadAdditionalMods(data, loadOrderIndex);
+        if (this.modDirs.length > 0) {
+            console.error('Loading additional mods...');
+            await this.loadAdditionalMods(data, loadOrderIndex);
+        } else {
+            console.error('No additional mod directories specified');
+        }
 
         console.error('Validating load order...');
         this.validateLoadOrder(data);
@@ -115,21 +117,12 @@ export class ModLoader {
         const loadTasks: Promise<ModInfo | null>[] = [];
         let currentIndex = startIndex;
 
-        // Build list of all mod directories to scan
+        // Build list of all mod directories to scan (only specified directories)
         const modDirectoriesToScan: Array<{ path: string; name: string }> = [];
 
-        // 1. Always include built-in Mods directory
-        const builtinModsPath = join(this.rimworldPath, 'Mods');
-        modDirectoriesToScan.push({ path: builtinModsPath, name: 'Built-in Mods' });
-
-        // 2. Include auto-detected Steam Workshop (if it exists)
-        if (this.steamWorkshopPath) {
-            modDirectoriesToScan.push({ path: this.steamWorkshopPath, name: 'Steam Workshop' });
-        }
-
-        // 3. Include extra mod directories from config
-        this.extraModDirs.forEach((dirPath, index) => {
-            modDirectoriesToScan.push({ path: dirPath, name: `Extra Directory ${index + 1}` });
+        // Include specified mod directories
+        this.modDirs.forEach((dirPath, index) => {
+            modDirectoriesToScan.push({ path: dirPath, name: `Mod Directory ${index + 1}` });
         });
 
         // Scan all directories in parallel

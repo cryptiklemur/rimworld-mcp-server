@@ -16,17 +16,11 @@ function parseModDirectories(dirs: string): string[] {
     return dirs.split(',').map(path => path.trim()).filter(path => path.length > 0);
 }
 
-// Helper function to auto-detect Steam workshop path
-function detectSteamWorkshopPath(rimworldPath: string): string {
-    if (!rimworldPath) return '';
-    return join(rimworldPath, '../../workshop/content/294100');
-}
 
 // Command line argument parsing
 function parseArgs(): {
     rimworldPath: string;
-    extraModDirs: string[];
-    steamWorkshopPath?: string;
+    modDirs: string[];
     serverName: string;
     serverVersion: string;
     serverDescription: string;
@@ -41,14 +35,12 @@ function parseArgs(): {
 } {
     const args = process.argv.slice(2);
     let rimworldPath = '';
-    let extraModDirs: string[] = [];
-    let steamWorkshopPath = '';
+    let modDirs: string[] = [];
     
     // Default configuration
     const config = {
         rimworldPath: '',
-        extraModDirs: [] as string[],
-        steamWorkshopPath: '',
+        modDirs: [] as string[],
         serverName: 'rimworld-defs',
         serverVersion: '3.0.0',
         serverDescription: 'MCP server for RimWorld XML definitions with full mod and patch support',
@@ -65,10 +57,8 @@ function parseArgs(): {
     for (const arg of args) {
         if (arg.startsWith('--rimworld-path=')) {
             config.rimworldPath = arg.substring('--rimworld-path='.length);
-        } else if (arg.startsWith('--extra-mod-dirs=')) {
-            config.extraModDirs = parseModDirectories(arg.substring('--extra-mod-dirs='.length));
-        } else if (arg.startsWith('--steam-workshop-path=')) {
-            config.steamWorkshopPath = arg.substring('--steam-workshop-path='.length);
+        } else if (arg.startsWith('--mod-dirs=')) {
+            config.modDirs = parseModDirectories(arg.substring('--mod-dirs='.length));
         } else if (arg.startsWith('--server-name=')) {
             config.serverName = arg.substring('--server-name='.length);
         } else if (arg.startsWith('--server-version=')) {
@@ -98,8 +88,7 @@ function parseArgs(): {
             console.error('  --rimworld-path=<path>           Path to RimWorld installation');
             console.error('');
             console.error('Optional:');
-            console.error('  --extra-mod-dirs=<paths>         Comma-separated list of additional mod directories');
-            console.error('  --steam-workshop-path=<path>     Override Steam workshop path (auto-detected if not specified)');
+            console.error('  --mod-dirs=<paths>               Comma-separated list of mod directories to scan');
             console.error('  --server-name=<name>             Server name (default: rimworld-defs)');
             console.error('  --server-version=<version>       Server version (default: 3.0.0)');
             console.error('  --mod-concurrency=<n>            Number of mods to process simultaneously (default: 4)');
@@ -114,14 +103,9 @@ function parseArgs(): {
             console.error('');
             console.error('Examples:');
             console.error('  tsx src/index.ts --rimworld-path="/path/to/rimworld"');
-            console.error('  tsx src/index.ts --rimworld-path="/path/to/rimworld" --extra-mod-dirs="/path/to/workshop,/path/to/custom"');
+            console.error('  tsx src/index.ts --rimworld-path="/path/to/rimworld" --mod-dirs="/path/to/workshop,/path/to/custom"');
             process.exit(0);
         }
-    }
-    
-    // Auto-detect Steam workshop path if not specified
-    if (!config.steamWorkshopPath && config.rimworldPath) {
-        config.steamWorkshopPath = detectSteamWorkshopPath(config.rimworldPath);
     }
     
     return config;
@@ -157,7 +141,7 @@ class RimWorldDefsServer {
             abstractDefs: new Map()
         };
 
-        this.modLoader = new ModLoader(rimworldPath, config.modBatchSize, config.extraModDirs, config.steamWorkshopPath);
+        this.modLoader = new ModLoader(rimworldPath, config.modBatchSize, config.modDirs);
         this.defParser = new DefParser();
         this.patchManager = new PatchManager();
         this.combinedScanner = new CombinedScanner(config.xmlBatchSize);
