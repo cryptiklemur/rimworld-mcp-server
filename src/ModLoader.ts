@@ -158,6 +158,7 @@ export class ModLoader {
             if (modInfo && !data.mods.has(modInfo.packageId)) {
                 data.mods.set(modInfo.packageId, modInfo);
                 data.loadOrder.push(modInfo.packageId);
+                console.error(`  ✓ Loaded ${modInfo.name} from: ${modInfo.path}`);
                 modsLoaded++;
             }
         }
